@@ -9,6 +9,18 @@
     }
   },
   "profiles": {
+    "ErrSendWebApi": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "JWT_TOKEN_KEY": "your-development-super-secret-key-here-min-32-chars",
+        "JWT_ISSUER": "ErrorSenderApi",
+        "JWT_AUDIENCE": "https://localhost:5001",
+        "JWT_EXPIRY_MINUTES": "60"
+      },
+      "applicationUrl": "https://localhost:5001;http://localhost:5000"
+    },
     "http": {
       "commandName": "Project",
       "dotnetRunMessages": true,

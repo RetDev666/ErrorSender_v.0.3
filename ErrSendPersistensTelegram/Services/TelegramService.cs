@@ -52,27 +52,27 @@ namespace ErrSendPersistensTelegram.Services
                     return new SendErrorToTelegramResponse
                     {
                         IsSuccess = true,
-                        Message = "Error sent successfully to Telegram",
+                        Message = "Помилка успішно відправлена в Telegram",
                         TelegramMessageId = telegramResponse?.Result?.MessageId.ToString() ?? ""
                     };
                 }
                 else
                 {
-                    _logger.LogError("Failed to send message to Telegram: {Response}", responseContent);
+                    _logger.LogError("Не вдалося відправити повідомлення в Telegram: {Response}", responseContent);
                     return new SendErrorToTelegramResponse
                     {
                         IsSuccess = false,
-                        Message = $"Telegram API error: {responseContent}"
+                        Message = $"Помилка API Telegram: {responseContent}"
                     };
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Exception occurred while sending message to Telegram");
+                _logger.LogError(ex, "Виникла помилка під час надсилання повідомлення в Telegram");
                 return new SendErrorToTelegramResponse
                 {
                     IsSuccess = false,
-                    Message = $"Exception: {ex.Message}"
+                    Message = $"Виняток: {ex.Message}"
                 };
             }
         }
@@ -88,25 +88,25 @@ namespace ErrSendPersistensTelegram.Services
             };
 
             var message = new StringBuilder();
-            message.AppendLine($"{emoji} <b>ERROR REPORT</b>");
-            message.AppendLine($"<b>Severity:</b> {errorReport.Severity}");
-            message.AppendLine($"<b>Time:</b> {errorReport.Timestamp:yyyy-MM-dd HH:mm:ss} UTC");
-            message.AppendLine($"<b>Source:</b> {errorReport.Source}");
+            message.AppendLine($"{emoji} <b>ЗВІТ ПРО ПОМИЛКУ</b>");
+            message.AppendLine($"<b>Тяжкість:</b> {errorReport.Severity}");
+            message.AppendLine($"<b>Час:</b> {errorReport.Timestamp:yyyy-MM-dd HH:mm:ss} UTC");
+            message.AppendLine($"<b>Джерело:</b> {errorReport.Source}");
             
             if (!string.IsNullOrEmpty(errorReport.UserId))
-                message.AppendLine($"<b>User:</b> {errorReport.UserId}");
+                message.AppendLine($"<b>Користувач:</b> {errorReport.UserId}");
             
-            message.AppendLine($"<b>Message:</b> {errorReport.ErrorMessage}");
+            message.AppendLine($"<b>Повідомлення:</b> {errorReport.ErrorMessage}");
             
             if (!string.IsNullOrEmpty(errorReport.AdditionalInfo))
-                message.AppendLine($"<b>Additional Info:</b> {errorReport.AdditionalInfo}");
+                message.AppendLine($"<b>Додаткова інформація:</b> {errorReport.AdditionalInfo}");
             
             if (!string.IsNullOrEmpty(errorReport.StackTrace))
             {
                 var truncatedStackTrace = errorReport.StackTrace.Length > 1000 
                     ? errorReport.StackTrace.Substring(0, 1000) + "..."
                     : errorReport.StackTrace;
-                message.AppendLine($"<b>Stack Trace:</b>\n<code>{truncatedStackTrace}</code>");
+                message.AppendLine($"<b>Трасування стека:</b>\n<code>{truncatedStackTrace}</code>");
             }
 
             return message.ToString();

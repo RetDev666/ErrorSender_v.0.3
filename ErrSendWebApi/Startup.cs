@@ -20,16 +20,34 @@ namespace ErrSendWebApi
     public class Startup
     {
         public IConfiguration Configuration { get; }
+        private readonly IWebHostEnvironment _environment;
 
-        public Startup(IConfiguration configuration)
+        public Startup(IConfiguration configuration, IWebHostEnvironment environment)
         {
             Configuration = configuration;
+            _environment = environment;
         }
 
         public void ConfigureServices(IServiceCollection services)
         {
-            // Конфігурація файлів
-            services.Configure<TokenConfig>(Configuration.GetSection("JWT"));
+            // JWT configuration from environment variables
+            var tokenConfig = new TokenConfig
+            {
+                TokenKey = Environment.GetEnvironmentVariable("JWT_TOKEN_KEY") ?? 
+                    (_environment.IsDevelopment() ? "development-key-that-is-at-least-32-characters-long" : 
+                        throw new InvalidOperationException("JWT_TOKEN_KEY environment variable is not set in production")),
+                Issuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "ErrorSenderApi",
+                Audience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "https://localhost:5001",
+                ExpiryInMinutes = int.Parse(Environment.GetEnvironmentVariable("JWT_EXPIRY_MINUTES") ?? "60")
+            };
+
+            services.Configure<TokenConfig>(config =>
+            {
+                config.TokenKey = tokenConfig.TokenKey;
+                config.Issuer = tokenConfig.Issuer;
+                config.Audience = tokenConfig.Audience;
+                config.ExpiryInMinutes = tokenConfig.ExpiryInMinutes;
+            });
 
             //Додаємо профілі зборок в ДІ конвеєр через автомапер.
             services.AddAutoMapper(config =>
@@ -44,27 +62,23 @@ namespace ErrSendWebApi
             services.AddControllers();
             
             // JWT Authentication configuration
-            var jwtSettings = Configuration.GetSection("JWT");
-            if (!string.IsNullOrEmpty(jwtSettings["TokenKey"]))
+            services.AddAuthentication(options =>
             {
-                services.AddAuthentication(options =>
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                }).AddJwtBearer(options =>
-                {
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuer = true,
-                        ValidateAudience = true,
-                        ValidateLifetime = true,
-                        ValidateIssuerSigningKey = true,
-                        ValidIssuer = jwtSettings["Issuer"] ?? "ErrorSenderApi",
-                        ValidAudience = jwtSettings["Audience"] ?? "https://localhost:5001",
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["TokenKey"]!))
-                    };
-                });
-            }
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = tokenConfig.Issuer,
+                    ValidAudience = tokenConfig.Audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(tokenConfig.TokenKey))
+                };
+            });
 
             //Політика підключення із всіх а не тільки через ІдентітіСрв не працювало б якщо ми б спробували із 1с наприклад підключитись.
             services.AddCors(options =>
@@ -86,16 +100,16 @@ namespace ErrSendWebApi
                     c.IncludeXmlComments(xmlPath);
                 }
 
-                c.SwaggerDoc("v1", new OpenApiInfo
+                c.SwaggerDoc("v0.3", new OpenApiInfo
                 {
                     Title = "ErrorSender API",
-                    Version = "v1",
+                    Version = "v.0.3",
                     Description = "API для відправки помилок в Telegram групу"
                 });
 
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
                 {
-                    Name = "Authorization",
+                    Name = "Авторизація",
                     Type = SecuritySchemeType.ApiKey,
                     Scheme = "Bearer",
                     BearerFormat = "JWT",
@@ -126,6 +140,7 @@ namespace ErrSendWebApi
 
             services.AddSingleton<ICurrentService, CurrentService>();
             services.AddHttpContextAccessor();
+            services.AddScoped<IJwtService, JwtService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

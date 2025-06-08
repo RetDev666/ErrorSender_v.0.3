@@ -9,38 +9,38 @@ namespace ErrSendApplication.Proceses
 {
     public class SendErrorToTelegramCommandHandler : IRequestHandler<SendErrorToTelegramCommand, SendErrorToTelegramResponse>
     {
-        private readonly ITelegramService _telegramService;
-        private readonly IMapper _mapper;
-        private readonly ILogger<SendErrorToTelegramCommandHandler> _logger;
+        private readonly ITelegramService telegramService;
+        private readonly IMapper mapper;
+        private readonly ILogger<SendErrorToTelegramCommandHandler> logger;
 
         public SendErrorToTelegramCommandHandler(
             ITelegramService telegramService,
             IMapper mapper,
             ILogger<SendErrorToTelegramCommandHandler> logger)
         {
-            _telegramService = telegramService;
-            _mapper = mapper;
-            _logger = logger;
+            this.telegramService = telegramService;
+            this.mapper = mapper;
+            this.logger = logger;
         }
 
         public async Task<SendErrorToTelegramResponse> Handle(SendErrorToTelegramCommand request, CancellationToken cancellationToken)
         {
             try
             {
-                _logger.LogInformation("Sending error to Telegram: {ErrorMessage}", request.ErrorReport.ErrorMessage);
+                logger.LogInformation("Помилка надсилання на адресу Telegram: {ErrorMessage}", request.ErrorReport.ErrorMessage);
 
-                var errorReport = _mapper.Map<ErrorReport>(request.ErrorReport);
+                var errorReport = mapper.Map<ErrorReport>(request.ErrorReport);
                 errorReport.Timestamp = DateTime.UtcNow;
 
-                var result = await _telegramService.SendErrorAsync(errorReport);
+                var result = await telegramService.SendErrorAsync(errorReport);
 
-                _logger.LogInformation("Error sent to Telegram successfully: {MessageId}", result.TelegramMessageId);
+                logger.LogInformation("Помилка успішно відправлена в Telegram: {MessageId}", result.TelegramMessageId);
 
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to send error to Telegram");
+                logger.LogError(ex, "Failed to send error to Telegram");
                 return new SendErrorToTelegramResponse
                 {
                     IsSuccess = false,

@@ -28,13 +28,13 @@ namespace ErrSendWebApi
 
             try
             {
-                Log.Information("Starting ErrorSender API...");
+                Log.Information("Запуск API ErrorSender...");
                 var host = CreateHostBuilder(args).Build();
                 host.Run();
             }
             catch (Exception ex)
             {
-                Log.Fatal(ex, "Application terminated unexpectedly");
+                Log.Fatal(ex, "Заявку несподівано завершено");
             }
             finally
             {
